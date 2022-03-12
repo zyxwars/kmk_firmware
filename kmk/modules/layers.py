@@ -11,6 +11,7 @@ class LayerType:
 
     LT = const(0)
     TT = const(1)
+    TM = const(2)
 
 
 def curry(fn, *args, **kwargs):
@@ -61,6 +62,12 @@ class Layers(HoldTap):
             names=('TT',),
             on_press=curry(self.ht_pressed, key_type=LayerType.TT),
             on_release=curry(self.ht_released, key_type=LayerType.TT),
+        )
+        make_argumented_key(
+            validator=curry(layer_key_validator, prefer_hold=True),
+            names=('TM',),
+            on_press=curry(self.ht_pressed, key_type=LayerType.TM),
+            on_release=curry(self.ht_released, key_type=LayerType.TM),
         )
 
     def process_key(self, keyboard, key, is_pressed, int_coord):
@@ -160,6 +167,9 @@ class Layers(HoldTap):
             self._mo_pressed(key, keyboard, *args, **kwargs)
         elif key_type == LayerType.TT:
             self._tg_pressed(key, keyboard, *args, **kwargs)
+        elif key_type == LayerType.TM:
+            keyboard.hid_pending = True
+            keyboard.keys_pressed.add(key.meta.kc)
 
     def ht_deactivate_hold(self, key, keyboard, *args, **kwargs):
         key_type = kwargs['key_type']
@@ -167,6 +177,9 @@ class Layers(HoldTap):
             self._mo_released(key, keyboard, *args, **kwargs)
         elif key_type == LayerType.TT:
             self._tg_pressed(key, keyboard, *args, **kwargs)
+        elif key_type == LayerType.TM:
+            keyboard.hid_pending = True
+            keyboard.keys_pressed.discard(key.meta.kc)
 
     def ht_activate_tap(self, key, keyboard, *args, **kwargs):
         key_type = kwargs['key_type']
@@ -174,6 +187,8 @@ class Layers(HoldTap):
             keyboard.hid_pending = True
             keyboard.keys_pressed.add(key.meta.kc)
         elif key_type == LayerType.TT:
+            self._tg_pressed(key, keyboard, *args, **kwargs)
+        elif key_type == LayerType.TM:
             self._tg_pressed(key, keyboard, *args, **kwargs)
 
     def ht_deactivate_tap(self, key, keyboard, *args, **kwargs):
