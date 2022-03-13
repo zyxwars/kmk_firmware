@@ -186,10 +186,9 @@ class Layers(HoldTap):
         if key_type == LayerType.LT:
             keyboard.hid_pending = True
             keyboard.keys_pressed.add(key.meta.kc)
-        elif key_type == LayerType.TT:
+        elif key_type in (LayerType.TT, LayerType.TM):
             self._tg_pressed(key, keyboard, *args, **kwargs)
-        elif key_type == LayerType.TM:
-            self._tg_pressed(key, keyboard, *args, **kwargs)
+
 
     def ht_deactivate_tap(self, key, keyboard, *args, **kwargs):
         key_type = kwargs['key_type']
