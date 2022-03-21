@@ -1,3 +1,5 @@
 - [ ] Invert prefer hold on certain keys
 - ex. Prefer tap when next key pressed is space or enter
 - [ ] Add invert key list as a meta parameter to a key
+- [ ] Optimize symbol positions
+- [ ] Add accented letters layer, hold enter mod
