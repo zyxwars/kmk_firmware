@@ -1,13 +1,71 @@
-import neopixel
-
 from math import e, exp, pi, sin
 
 from kmk.extensions import Extension
 from kmk.handlers.stock import passthrough as handler_passthrough
 from kmk.keys import make_key
 from kmk.kmktime import PeriodicTimer
+from kmk.utils import clamp
 
 rgb_config = {}
+
+
+def hsv_to_rgb(hue, sat, val):
+    '''
+    Converts HSV values, and returns a tuple of RGB values
+    :param hue:
+    :param sat:
+    :param val:
+    :return: (r, g, b)
+    '''
+    if sat == 0:
+        return (val, val, val)
+
+    hue = 6 * (hue & 0xFF)
+    frac = hue & 0xFF
+    sxt = hue >> 8
+
+    base = (0xFF - sat) * val
+    color = (val * sat * frac) >> 8
+    val <<= 8
+
+    if sxt == 0:
+        r = val
+        g = base + color
+        b = base
+    elif sxt == 1:
+        r = val - color
+        g = val
+        b = base
+    elif sxt == 2:
+        r = base
+        g = val
+        b = base + color
+    elif sxt == 3:
+        r = base
+        g = val - color
+        b = val
+    elif sxt == 4:
+        r = base + color
+        g = base
+        b = val
+    elif sxt == 5:
+        r = val
+        g = base
+        b = val - color
+
+    return (r >> 8), (g >> 8), (b >> 8)
+
+
+def hsv_to_rgbw(self, hue, sat, val):
+    '''
+    Converts HSV values, and returns a tuple of RGBW values
+    :param hue:
+    :param sat:
+    :param val:
+    :return: (r, g, b, w)
+    '''
+    rgb = hsv_to_rgb(hue, sat, val)
+    return rgb[0], rgb[1], rgb[2], min(rgb)
 
 
 class AnimationModes:
@@ -29,14 +87,14 @@ class RGB(Extension):
         self,
         pixel_pin,
         num_pixels=0,
-        val_limit=100,
+        val_limit=255,
         hue_default=0,
-        sat_default=100,
+        sat_default=255,
         rgb_order=(1, 0, 2),  # GRB WS2812
-        val_default=100,
-        hue_step=5,
-        sat_step=5,
-        val_step=5,
+        val_default=255,
+        hue_step=4,
+        sat_step=13,
+        val_step=13,
         animation_speed=1,
         breathe_center=1,  # 1.0-2.7
         knight_effect_length=3,
@@ -49,6 +107,8 @@ class RGB(Extension):
         refresh_rate=60,
     ):
         if pixels is None:
+            import neopixel
+
             self.pixels = neopixel.NeoPixel(
                 pixel_pin,
                 num_pixels,
@@ -173,69 +233,6 @@ class RGB(Extension):
     def on_powersave_disable(self, sandbox):
         self._do_update()
 
-    def hsv_to_rgb(self, hue, sat, val):
-        '''
-        Converts HSV values, and returns a tuple of RGB values
-        :param hue:
-        :param sat:
-        :param val:
-        :return: (r, g, b)
-        '''
-        r = 0
-        g = 0
-        b = 0
-
-        if val > self.val_limit:
-            val = self.val_limit
-
-        if sat == 0:
-            r = val
-            g = val
-            b = val
-
-        else:
-            base = ((100 - sat) * val) / 100
-            color = (val - base) * ((hue % 60) / 60)
-
-            x = int(hue / 60)
-            if x == 0:
-                r = val
-                g = base + color
-                b = base
-            elif x == 1:
-                r = val - color
-                g = val
-                b = base
-            elif x == 2:
-                r = base
-                g = val
-                b = base + color
-            elif x == 3:
-                r = base
-                g = val - color
-                b = val
-            elif x == 4:
-                r = base + color
-                g = base
-                b = val
-            elif x == 5:
-                r = val
-                g = base
-                b = val - color
-
-        return int(r), int(g), int(b)
-
-    def hsv_to_rgbw(self, hue, sat, val):
-        '''
-        Converts HSV values, and returns a tuple of RGBW values
-        :param hue:
-        :param sat:
-        :param val:
-        :return: (r, g, b, w)
-        '''
-        rgb = self.hsv_to_rgb(hue, sat, val)
-        return rgb[0], rgb[1], rgb[2], min(rgb)
-
     def set_hsv(self, hue, sat, val, index):
         '''
         Takes HSV values and displays it on a single LED/Neopixel
@@ -246,9 +243,9 @@ class RGB(Extension):
         '''
         if self.pixels:
             if self.rgbw:
-                self.set_rgb(self.hsv_to_rgbw(hue, sat, val), index)
+                self.set_rgb(hsv_to_rgbw(hue, sat, val), index)
             else:
-                self.set_rgb(self.hsv_to_rgb(hue, sat, val), index)
+                self.set_rgb(hsv_to_rgb(hue, sat, val), index)
 
     def set_hsv_fill(self, hue, sat, val):
         '''
@@ -259,9 +256,9 @@ class RGB(Extension):
         '''
         if self.pixels:
             if self.rgbw:
-                self.set_rgb_fill(self.hsv_to_rgbw(hue, sat, val))
+                self.set_rgb_fill(hsv_to_rgbw(hue, sat, val))
             else:
-                self.set_rgb_fill(self.hsv_to_rgb(hue, sat, val))
+                self.set_rgb_fill(hsv_to_rgb(hue, sat, val))
 
     def set_rgb(self, rgb, index):
         '''
@@ -286,45 +283,42 @@ class RGB(Extension):
 
     def increase_hue(self, step=None):
         '''
-        Increases hue by step amount rolling at 360 and returning to 0
+        Increases hue by step amount rolling at 256 and returning to 0
         :param step:
         '''
         if step is None:
             step = self.hue_step
 
-        self.hue = (self.hue + step) % 360
+        self.hue = (self.hue + step) % 256
 
         if self._check_update():
             self._do_update()
 
     def decrease_hue(self, step=None):
         '''
-        Decreases hue by step amount rolling at 0 and returning to 360
+        Decreases hue by step amount rolling at 0 and returning to 256
         :param step:
         '''
         if step is None:
             step = self.hue_step
 
         if (self.hue - step) <= 0:
-            self.hue = (self.hue + 360 - step) % 360
+            self.hue = (self.hue + 256 - step) % 256
         else:
-            self.hue = (self.hue - step) % 360
+            self.hue = (self.hue - step) % 256
 
         if self._check_update():
             self._do_update()
 
     def increase_sat(self, step=None):
         '''
-        Increases saturation by step amount stopping at 100
+        Increases saturation by step amount stopping at 255
         :param step:
         '''
         if step is None:
             step = self.sat_step
 
-        if self.sat + step >= 100:
-            self.sat = 100
-        else:
-            self.sat += step
+        self.sat = clamp(self.sat + step, 0, 255)
 
         if self._check_update():
             self._do_update()
@@ -337,10 +331,7 @@ class RGB(Extension):
         if step is None:
             step = self.sat_step
 
-        if (self.sat - step) <= 0:
-            self.sat = 0
-        else:
-            self.sat -= step
+        self.sat = clamp(self.sat - step, 0, 255)
 
         if self._check_update():
             self._do_update()
@@ -352,10 +343,8 @@ class RGB(Extension):
         '''
         if step is None:
             step = self.val_step
-        if (self.val + step) >= 100:
-            self.val = 100
-        else:
-            self.val += step
+
+        self.val = clamp(self.val + step, 0, 255)
 
         if self._check_update():
             self._do_update()
@@ -367,10 +356,8 @@ class RGB(Extension):
         '''
         if step is None:
             step = self.val_step
-        if (self.val - step) <= 0:
-            self.val = 0
-        else:
-            self.val -= step
+
+        self.val = clamp(self.val - step, 0, 255)
 
         if self._check_update():
             self._do_update()
@@ -380,10 +367,8 @@ class RGB(Extension):
         Increases animation speed by 1 amount stopping at 10
         :param step:
         '''
-        if (self.animation_speed + 1) > 10:
-            self.animation_speed = 10
-        else:
-            self.animation_speed += 1
+        self.animation_speed = clamp(self.animation_speed + 1, 0, 10)
+
         if self._check_update():
             self._do_update()
 
@@ -392,10 +377,8 @@ class RGB(Extension):
         Decreases animation speed by 1 amount stopping at 0
         :param step:
         '''
-        if (self.animation_speed - 1) <= 0:
-            self.animation_speed = 0
-        else:
-            self.animation_speed -= 1
+        self.animation_speed = clamp(self.animation_speed - 1, 0, 10)
+
         if self._check_update():
             self._do_update()
 
@@ -490,7 +473,7 @@ class RGB(Extension):
         self.disable_auto_write = True  # Turn off instantly showing
         for i in range(0, self.num_pixels):
             self.set_hsv(
-                (self.hue - (i * self.num_pixels)) % 360, self.sat, self.val, i
+                (self.hue - (i * self.num_pixels)) % 256, self.sat, self.val, i
             )
 
         # Show final results
