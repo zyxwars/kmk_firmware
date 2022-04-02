@@ -14,8 +14,8 @@ ENTFN = KC.LT(1, KC.ENT, prefer_hold=True, tap_interrupted=False)
 GAMING = KC.TG(3)
 
 # Multi
-SFTMOD1 = KC.LT(4, KC.ESC, prefer_hold=True, tap_interrupted=False)
-SFTMOD2 = KC.LT(4, S(KC.MINUS), prefer_hold=True, tap_interrupted=False)
+SFTMOD1 = KC.MT( KC.ESC, KC.LSFT, prefer_hold=True, tap_interrupted=False)
+SFTMOD2 = KC.MT(KC.EQUAL, KC.RSFT, prefer_hold=True, tap_interrupted=False)
 F5RUN = KC.TD(KC.F5, KC.LCTL(KC.F5))
 NXTPRV = KC.TD(KC.MNXT, KC.MPRV)
 
@@ -49,16 +49,16 @@ keymap = [
     #    KC.LCTL, GUI,     KC.LALT, KC.F12,  FN,     KC.SPC, KC.DEL,         ENTFN,   ENTFN,   FN,      KC.LEFT, KC.DOWN, KC.UP,   KC.RIGHT
     #],
     [   # COLEMAK-DH
-        S(KC.GRV),S(KC.N1),S(KC.N2),S(KC.N3),S(KC.N4),S(KC.N5),F5RUN,         GAMING,  S(KC.N6), S(KC.N7),S(KC.N8),S(KC.N9),S(KC.N0),S(KC.BSLS),
-        KC.TAB,  KC.Q,    KC.W,    KC.F,    KC.P,    KC.B,    KC.F12,         _______, KC.J,    KC.L,    KC.U,    KC.Y,    KC.SCLN, KC.EQUAL,
-        KC.BSPC, KC.A,    KC.R,    KC.S,    KC.T,    KC.G,    GITCA,          _______, KC.M,    KC.N,    KC.E,    KC.I,    KC.O,    KC.DQUO,
+        KC.GRV,  KC.N1,   KC.N2,   KC.N3,   KC.N4,   KC.N5,   F5RUN,         GAMING,   KC.N6,   KC.N7,   KC.N8,   KC.N9,   KC.N0,   KC.BSLS,
+        KC.TAB,  KC.Q,    KC.W,    KC.F,    KC.P,    KC.B,    KC.F12,         _______, KC.J,    KC.L,    KC.U,    KC.Y,    KC.SCLN, KC.MINUS,
+        KC.BSPC, KC.A,    KC.R,    KC.S,    KC.T,    KC.G,    GITCA,          _______, KC.M,    KC.N,    KC.E,    KC.I,    KC.O,    KC.QUOT,
         SFTMOD1, KC.Z,    KC.X,    KC.C,    KC.D,    KC.V,    KC.RESET,       _______, KC.K,    KC.H,    KC.COMMA,KC.DOT,  KC.SLASH,SFTMOD2,
         KC.LCTL, GUI,     KC.LALT, KC.F12,  FN,      KC.SPC,  KC.DEL,         _______, ENTFN,   FN,      KC.LEFT, KC.DOWN, KC.UP,   KC.RIGHT
     ],
     [   # FN
         _______, KC.F1,   KC.F2,   KC.F3,   KC.F4,   KC.F5,   _______,        _______, KC.F6,   KC.F7,   KC.F8,   KC.F9,   KC.F10,  KC.F11,
-        _______, _______, _______, LCBC,    RCBC,    _______, _______,        _______, _______, _______, _______, _______, _______, KC.F12,
-        _______, _______, _______, KC.LPRN, KC.RPRN, _______, _______,        _______, KC.LEFT, KC.DOWN, KC.UP,   KC.RIGHT,_______, _______,
+        _______, S(KC.N1),S(KC.N2),LCBC,    RCBC,    S(KC.N5),_______,        _______, S(KC.N6),S(KC.N7),S(KC.N8),_______, _______, KC.F12,
+        _______, _______, KC.EQUAL,KC.LPRN, KC.RPRN, S(KC.N4),_______,        _______, KC.LEFT, KC.DOWN, KC.UP,   KC.RIGHT,_______, _______,
         _______, _______, _______, KC.LBRC, KC.RBRC, _______, _______,        _______, _______, _______, _______, _______, _______, _______,
         _______, _______, _______, _______, _______, _______, _______,        _______, _______, _______, KC.MPLY, KC.VOLD, KC.VOLU, NXTPRV,
     ],
@@ -75,12 +75,5 @@ keymap = [
         KC.BSPC, KC.A,    KC.S,    KC.D,    KC.F,   KC.G,     KC.M,           _______, KC.H,    KC.J,    KC.K,    KC.L,    KC.SCLN, _______,
         KC.LSFT, KC.Z,    KC.X,    KC.C,    KC.V,   KC.B,     _______,        _______, KC.N,    KC.M,    KC.COMMA,KC.DOT,  KC.SLASH,_______,
         _______, _______, _______, _______, _______, _______, _______,        _______, _______, _______, _______, _______, _______, _______,
-    ],
-     [   # COLEMAK-DH SHIFTED
-        S(KC.GRV), KC.N1,   KC.N2,   KC.N3,   KC.N4,   KC.N5, F5RUN,          GAMING,  KC.N6,   KC.N7,   KC.N8,   KC.N9,   KC.N0,   KC.BSLS,
-        S(KC.TAB), S(KC.Q),S(KC.W),S(KC.F), S(KC.P), S(KC.B), S(KC.F12),      _______, S(KC.J), S(KC.L), S(KC.U), S(KC.Y), S(KC.SCLN),S(KC.EQUAL),
-        S(KC.BSPC),S(KC.A),S(KC.R),S(KC.S), S(KC.T), S(KC.G), GITCA,          _______, S(KC.M), S(KC.N), S(KC.E), S(KC.I), S(KC.O), KC.QUOT,
-        _______,  S(KC.Z), S(KC.X), S(KC.C), S(KC.D), S(KC.V), KC.RESET,      _______, S(KC.K), S(KC.H), S(KC.COMMA),S(KC.DOT),S(KC.SLASH),KC.MINUS,
-        S(KC.LCTL),GUI,   S(KC.LALT),S(KC.F12),FN,   S(KC.SPC),S(KC.DEL),     _______, ENTFN,   FN,      S(KC.LEFT),S(KC.DOWN),S(KC.UP),S(KC.RIGHT)
     ],
 ]
