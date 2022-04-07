@@ -8,17 +8,27 @@ from kmk.modules.layers import Layers
 from kmk.modules.modtap import ModTap
 from kmk.modules.tapdance import TapDance
 from kmk.modules.split import Split, SplitSide
-
+from kmk.modules.combos import Combos, Chord, Sequence
+from kmk.keys import KC, make_key
 keyboard = KMKKeyboard()
 #keyboard.debug_enabled = True
 
-keyboard.modules.append(Layers())
-keyboard.modules.append(ModTap())
-keyboard.modules.append(TapDance())
+combos = Combos()
+keyboard.modules.append(combos)
+GUI_COMBO_TIMEOUT = 200
+combos.combos = [
+    Sequence((KC.LGUI, KC.C), KC.LALT(KC.F4), timeout=GUI_COMBO_TIMEOUT),
+    # This is for Windows as WIN + E opens files manager, which makes more sense as WIN + F
+    # And changing Windows shortcuts is much more cumbersome that doing it here
+    Sequence((KC.LGUI, KC.F), KC.LGUI(KC.E), timeout=GUI_COMBO_TIMEOUT)
+]
 
+keyboard.modules.append(ModTap())
+keyboard.modules.append(Layers())
+keyboard.modules.append(TapDance())
 # TODO: Comment out the unwanted side
 split_side = SplitSide.LEFT
-split_side = SplitSide.RIGHT
+#split_side = SplitSide.RIGHT
 
 split = Split(split_side=split_side, data_pin=board.GP1, data_pin2=board.GP0, split_flip=False, uart_flip=False)
 keyboard.modules.append(split)
