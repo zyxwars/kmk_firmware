@@ -10,11 +10,12 @@ RCBC = S(KC.RBRC)
 # Layers
 FN = KC.MO(1)
 ENTFN = KC.LT(1, KC.ENT, prefer_hold=True, tap_interrupted=False)
-GAMING = KC.TG(3)
+GAMING = KC.TG(2)
 
 # Multi
-SFTMOD1 = KC.MT( KC.ESC, KC.LSFT, prefer_hold=True, tap_interrupted=False)
+SFTMOD1 = KC.MT(KC.ESC, KC.LSFT, prefer_hold=True, tap_interrupted=False)
 SFTMOD2 = KC.MT(KC.EQUAL, KC.RSFT, prefer_hold=True, tap_interrupted=False)
+MODBSPC = KC.TD(KC.BSPC, KC.LCTL(KC.BSPC))
 F5RUN = KC.TD(KC.F5, KC.LCTL(KC.F5))
 NXTPRV = KC.TD(KC.MNXT, KC.MPRV)
 
@@ -41,17 +42,17 @@ GITCA = simple_key_sequence(
 
 keymap = [
     [   # COLEMAK-DH
-        KC.GRV,  KC.N1,   KC.N2,   KC.N3,   KC.N4,   KC.N5,   F5RUN,         GAMING,   KC.N6,   KC.N7,   KC.N8,   KC.N9,   KC.N0,   KC.BSLS,
+        KC.GRV,  KC.N1,   KC.N2,   KC.N3,   KC.N4,   KC.N5,   F5RUN,          GAMING,   KC.N6,   KC.N7,   KC.N8,   KC.N9,   KC.N0,   KC.BSLS,
         KC.TAB,  KC.Q,    KC.W,    KC.F,    KC.P,    KC.B,    KC.F12,         _______, KC.J,    KC.L,    KC.U,    KC.Y,    KC.SCLN, KC.MINUS,
-        KC.BSPC, KC.A,    KC.R,    KC.S,    KC.T,    KC.G,    GITCA,          _______, KC.M,    KC.N,    KC.E,    KC.I,    KC.O,    KC.QUOT,
+        MODBSPC, KC.A,    KC.R,    KC.S,    KC.T,    KC.G,    GITCA,          _______, KC.M,    KC.N,    KC.E,    KC.I,    KC.O,    KC.QUOT,
         SFTMOD1, KC.Z,    KC.X,    KC.C,    KC.D,    KC.V,    KC.RESET,       _______, KC.K,    KC.H,    KC.COMMA,KC.DOT,  KC.SLASH,SFTMOD2,
         KC.LCTL, KC.LGUI, KC.LALT, KC.F12,  FN,      KC.SPC,  KC.DEL,         _______, ENTFN,   FN,      KC.LEFT, KC.DOWN, KC.UP,   KC.RIGHT
     ],
     [   # FN
         _______, KC.F1,   KC.F2,   KC.F3,   KC.F4,   KC.F5,   _______,        _______, KC.F6,   KC.F7,   KC.F8,   KC.F9,   KC.F10,  KC.F11,
         _______, S(KC.N1),S(KC.N2),S(KC.N3),S(KC.N4),S(KC.N5),_______,        _______, S(KC.N6),S(KC.N7),S(KC.N8),_______, _______, KC.F12,
-        _______, _______, KC.EQUAL,KC.LPRN, LCBC,    KC.LBRC, _______,        _______, KC.LEFT, KC.DOWN, KC.UP,   KC.RIGHT,_______, _______,
-        _______, _______, _______, KC.RPRN, RCBC,    KC.RBRC, _______,        _______, _______, _______, _______, _______, _______, _______,
+        _______, _______, KC.EQUAL,LCBC,    KC.LPRN, KC.LBRC, _______,        _______, KC.LEFT, KC.DOWN, KC.UP,   KC.RIGHT,_______, _______,
+        _______, _______, _______, RCBC,    KC.RPRN, KC.RBRC, _______,        _______, _______, _______, _______, _______, _______, _______,
         _______, _______, _______, _______, _______, _______, _______,        _______, _______, _______, KC.MPLY, KC.VOLD, KC.VOLU, NXTPRV,
     ],
     [   # GAMING/QWERTY
