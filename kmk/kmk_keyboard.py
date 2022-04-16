@@ -3,7 +3,8 @@ from supervisor import ticks_ms
 from kmk.consts import KMK_RELEASE, UnicodeMode
 from kmk.hid import BLEHID, USBHID, AbstractHID, HIDModes
 from kmk.keys import KC
-from kmk.matrix import MatrixScanner, intify_coordinate
+from kmk.kmktime import ticks_add, ticks_diff
+from kmk.scanners.keypad import MatrixScanner
 
 
 class Sandbox:
@@ -24,7 +25,6 @@ class KMKKeyboard:
     col_pins = None
     diode_orientation = None
     matrix = None
-    matrix_scanner = MatrixScanner
     uart_buffer = []
 
     unicode_mode = UnicodeMode.NOOP
@@ -54,6 +54,7 @@ class KMKKeyboard:
     _trigger_powersave_disable = False
     i2c_deinit_count = 0
     _go_args = None
+    _processing_timeouts = False
 
     # this should almost always be PREpended to, replaces
     # former use of reversed_active_layers which had pointless
@@ -71,7 +72,7 @@ class KMKKeyboard:
             'KMKKeyboard('
             'debug_enabled={} '
             'diode_orientation={} '
-            'matrix_scanner={} '
+            'matrix={} '
             'unicode_mode={} '
             '_hid_helper={} '
             'keys_pressed={} '
@@ -83,7 +84,7 @@ class KMKKeyboard:
         ).format(
             self.debug_enabled,
             self.diode_orientation,
-            self.matrix_scanner,
+            self.matrix,
             self.unicode_mode,
             self._hid_helper,
             # internal state
@@ -209,36 +210,52 @@ class KMKKeyboard:
         return self
 
     def set_timeout(self, after_ticks, callback):
+        # We allow passing False as an implicit "run this on the next process timeouts cycle"
         if after_ticks is False:
-            # We allow passing False as an implicit "run this on the next process timeouts cycle"
-            timeout_key = ticks_ms()
-        else:
-            timeout_key = ticks_ms() + after_ticks
+            after_ticks = 0
 
-        while timeout_key in self._timeouts:
-            timeout_key += 1
+        if after_ticks == 0 and self._processing_timeouts:
+            after_ticks += 1
 
-        self._timeouts[timeout_key] = callback
-        return timeout_key
+        timeout_key = ticks_add(ticks_ms(), after_ticks)
+
+        if timeout_key not in self._timeouts:
+            self._timeouts[timeout_key] = []
+
+        idx = len(self._timeouts[timeout_key])
+        self._timeouts[timeout_key].append(callback)
+
+        return (timeout_key, idx)
 
     def cancel_timeout(self, timeout_key):
-        if timeout_key in self._timeouts:
-            del self._timeouts[timeout_key]
+        try:
+            self._timeouts[timeout_key[0]][timeout_key[1]] = None
+        except (KeyError, IndexError):
+            if self.debug_enabled:
+                print(f'no such timeout: {timeout_key}')
 
     def _process_timeouts(self):
         if not self._timeouts:
             return self
 
+        # Copy timeout keys to a temporary list to allow sorting.
+        # Prevent net timeouts set during handling from running on the current
+        # cycle by setting a flag `_processing_timeouts`.
         current_time = ticks_ms()
+        timeout_keys = []
+        self._processing_timeouts = True
 
-        # cast this to a tuple to ensure that if a callback itself sets
-        # timeouts, we do not handle them on the current cycle
-        timeouts = tuple(self._timeouts.items())
+        for k in self._timeouts.keys():
+            if ticks_diff(k, current_time) <= 0:
+                timeout_keys.append(k)
 
-        for k, v in timeouts:
-            if k <= current_time:
-                v()
-                self.cancel_timeout(k)
+        for k in sorted(timeout_keys):
+            for callback in self._timeouts[k]:
+                if callback:
+                    callback()
+            del self._timeouts[k]
+
+        self._processing_timeouts = False
 
         return self
 
@@ -268,23 +285,11 @@ class KMKKeyboard:
         To save RAM on boards that don't use Split, we don't import Split
         and do an isinstance check, but instead do string detection
         '''
-        if self.matrix and self.matrix.coord_mapping:
-            self.coord_mapping = self.matrix.coord_mapping
-
         if any(x.__class__.__module__ == 'kmk.modules.split' for x in self.modules):
             return
 
         if not self.coord_mapping:
-            self.coord_mapping = []
-
-            rows_to_calc = len(self.row_pins)
-            cols_to_calc = len(self.col_pins)
-
-            for ridx in range(rows_to_calc):
-                for cidx in range(cols_to_calc):
-                    self.coord_mapping.append(
-                        intify_coordinate(ridx, cidx, cols_to_calc)
-                    )
+            self.coord_mapping = self.matrix.coord_mapping
 
     def _init_hid(self):
         if self.hid_type == HIDModes.NOOP:
@@ -301,14 +306,11 @@ class KMKKeyboard:
     def _init_matrix(self):
         if self.matrix is None:
             if self.debug_enabled:
-                print('Initialising matrix scanner from self.matrix_scanner')
-            self.matrix = self.matrix_scanner(
-                cols=self.col_pins,
-                rows=self.row_pins,
-                diode_orientation=self.diode_orientation,
-                rollover_cols_every_rows=getattr(
-                    self, 'rollover_cols_every_rows', None
-                ),
+                print('Initialising default matrix scanner.')
+            self.matrix = MatrixScanner(
+                column_pins=self.col_pins,
+                row_pins=self.row_pins,
+                columns_to_anodes=self.diode_orientation,
             )
         else:
             if self.debug_enabled:
@@ -416,9 +418,9 @@ class KMKKeyboard:
         self.secondary_hid_type = secondary_hid_type
 
         self._init_sanity_check()
-        self._init_coord_mapping()
         self._init_hid()
         self._init_matrix()
+        self._init_coord_mapping()
 
         for module in self.modules:
             try:

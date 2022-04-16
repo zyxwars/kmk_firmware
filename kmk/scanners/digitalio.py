@@ -1,31 +1,8 @@
 import digitalio
 
-from kmk.scanners import Scanner
+from keypad import Event as KeyEvent
 
-
-def intify_coordinate(row, col, len_cols):
-    return len_cols * row + col
-
-
-class DiodeOrientation:
-    '''
-    Orientation of diodes on handwired boards. You can think of:
-    COLUMNS = vertical
-    ROWS = horizontal
-
-    COL2ROW and ROW2COL are equivalent to their meanings in QMK.
-    '''
-
-    COLUMNS = 0
-    ROWS = 1
-    COL2ROW = COLUMNS
-    ROW2COL = ROWS
-
-
-class KeyEvent:
-    def __init__(self, key_number, pressed):
-        self.key_number = key_number
-        self.pressed = pressed
+from kmk.scanners import DiodeOrientation, Scanner
 
 
 class MatrixScanner(Scanner):
@@ -100,8 +77,13 @@ class MatrixScanner(Scanner):
         if self.rollover_cols_every_rows is None:
             self.rollover_cols_every_rows = self.len_rows
 
-        self.len_state_arrays = self.len_cols * self.len_rows
-        self.state = bytearray(self.len_state_arrays)
+        self._key_count = self.len_cols * self.len_rows
+        self.coord_mapping = tuple(range(self.key_count))
+        self.state = bytearray(self.key_count)
+
+    @property
+    def key_count(self):
+        return self._key_count
 
     def scan_for_changes(self):
         '''
