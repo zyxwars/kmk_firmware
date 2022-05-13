@@ -37,7 +37,7 @@ channel below.
 - [Chainable
   keys](https://github.com/KMKfw/kmk_firmware/blob/master/docs/keys.md) such as
   `KC.LWIN(KC.L)` to lock the screen on a Windows PC
-- [Built-in unicode macros, including
+- [Built-in Unicode macros, including
   emojis](https://github.com/KMKfw/kmk_firmware/blob/master/docs/sequences.md)
 - [RGB underglow](https://github.com/KMKfw/kmk_firmware/blob/master/docs/rgb.md)
   and [LED
@@ -78,7 +78,7 @@ documented in `pyproject.toml`).
 
 ## Tests
 
-Unit tests within the `tests` folder mock various CicuitPython modules to allow
+Unit tests within the `tests` folder mock various CircuitPython modules to allow
 them to be executed in a desktop development environment.
 
 Execute tests using the command `python -m unittest`.
@@ -86,7 +86,7 @@ Execute tests using the command `python -m unittest`.
 ## License, Copyright, and Legal
 
 All software in this repository is licensed under the [GNU Public License,
-verison 3](https://tldrlegal.com/license/gnu-general-public-license-v3-(gpl-3)).
+version 3](https://tldrlegal.com/license/gnu-general-public-license-v3-(gpl-3)).
 All documentation and hardware designs are licensed under the [Creative Commons
 Attribution-ShareAlike 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 license. Contributions to this repository must use these licenses unless

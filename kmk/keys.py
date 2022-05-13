@@ -4,7 +4,7 @@ from micropython import const
 import kmk.handlers.stock as handlers
 from kmk.consts import UnicodeMode
 from kmk.key_validators import key_seq_sleep_validator, unicode_mode_key_validator
-from kmk.types import AttrDict, UnicodeModeKeyMeta
+from kmk.types import UnicodeModeKeyMeta
 
 DEBUG_OUTPUT = False
 
@@ -19,10 +19,6 @@ ALL_ALPHAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 ALL_NUMBERS = '1234567890'
 # since KC.1 isn't valid Python, alias to KC.N1
 ALL_NUMBER_ALIASES = tuple(f'N{x}' for x in ALL_NUMBERS)
-
-
-class InfiniteLoopDetected(Exception):
-    pass
 
 
 # this is a bit of an FP style thing - combining a pipe operator a-la F# with
@@ -61,15 +57,37 @@ def maybe_make_consumer_key(candidate, code, names):
         return make_consumer_key(code=code, names=names)
 
 
-class KeyAttrDict(AttrDict):
-    def __getattr__(self, key, depth=0):
-        if depth > 1:
-            raise InfiniteLoopDetected()
+class KeyAttrDict:
+    __cache = {}
 
+    def __setitem__(self, key, value):
+        if DEBUG_OUTPUT:
+            print(f'__setitem__ {key}, {value}')
+        self.__cache.__setitem__(key, value)
+
+    def __getattr__(self, key):
+        if DEBUG_OUTPUT:
+            print(f'__getattr__ {key}')
+        return self.__getitem__(key)
+
+    def get(self, key, default=None):
         try:
-            return super(KeyAttrDict, self).__getattr__(key)
+            return self.__getitem__(key)
+        except Exception:
+            return default
+
+    def clear(self):
+        self.__cache.clear()
+
+    def __getitem__(self, key):
+        if DEBUG_OUTPUT:
+            print(f'__getitem__ {key}')
+        try:
+            return self.__cache[key]
         except Exception:
             pass
+
+        key_upper = key.upper()
 
         # Try all the other weird special cases to get them out of our way:
         # This need to be done before or ALPHAS because NO will be parsed as alpha
@@ -92,8 +110,14 @@ class KeyAttrDict(AttrDict):
             )
         # Basic ASCII letters/numbers don't need anything fancy, so check those
         # in the laziest way
-        elif key in ALL_ALPHAS:
-            make_key(code=4 + ALL_ALPHAS.index(key), names=(key,))
+        elif key_upper in ALL_ALPHAS:
+            make_key(
+                code=4 + ALL_ALPHAS.index(key_upper),
+                names=(
+                    key_upper,
+                    key.lower(),
+                ),
+            )
         elif key in ALL_NUMBERS or key in ALL_NUMBER_ALIASES:
             try:
                 offset = ALL_NUMBERS.index(key)
@@ -176,11 +200,11 @@ class KeyAttrDict(AttrDict):
                     maybe_make_mod_key,
                     (0x01, ('LEFT_CONTROL', 'LCTRL', 'LCTL')),
                     (0x02, ('LEFT_SHIFT', 'LSHIFT', 'LSFT')),
-                    (0x04, ('LEFT_ALT', 'LALT')),
+                    (0x04, ('LEFT_ALT', 'LALT', 'LOPT')),
                     (0x08, ('LEFT_SUPER', 'LGUI', 'LCMD', 'LWIN')),
                     (0x10, ('RIGHT_CONTROL', 'RCTRL', 'RCTL')),
                     (0x20, ('RIGHT_SHIFT', 'RSHIFT', 'RSFT')),
-                    (0x40, ('RIGHT_ALT', 'RALT')),
+                    (0x40, ('RIGHT_ALT', 'RALT', 'ROPT')),
                     (0x80, ('RIGHT_SUPER', 'RGUI', 'RCMD', 'RWIN')),
                     # MEH = LCTL | LALT | LSFT# MEH = LCTL |
                     (0x07, ('MEH',)),
@@ -365,10 +389,10 @@ class KeyAttrDict(AttrDict):
             if not maybe_key:
                 raise ValueError('Invalid key')
 
-        return self.__getattr__(key, depth=depth + 1)
+        return self.__cache[key]
 
 
-# Global state, will be filled in througout this file, and
+# Global state, will be filled in throughout this file, and
 # anywhere the user creates custom keys
 KC = KeyAttrDict()
 
@@ -398,11 +422,14 @@ class Key:
         if no_press is None and no_release is None:
             return self
 
-        return Key(
+        return type(self)(
             code=self.code,
             has_modifiers=self.has_modifiers,
             no_press=no_press,
             no_release=no_release,
+            on_press=self._handle_press,
+            on_release=self._handle_release,
+            meta=self.meta,
         )
 
     def __repr__(self):
@@ -557,43 +584,36 @@ class Key:
 
 
 class ModifierKey(Key):
-    # FIXME this is atrocious to read. Please, please, please, strike down upon
-    # this with great vengeance and furious anger.
-
     FAKE_CODE = const(-1)
 
-    def __call__(self, modified_code=None, no_press=None, no_release=None):
-        if modified_code is None and no_press is None and no_release is None:
-            return self
+    def __call__(self, modified_key=None, no_press=None, no_release=None):
+        if modified_key is None:
+            return super().__call__(no_press=no_press, no_release=no_release)
 
-        if modified_code is not None:
-            if isinstance(modified_code, ModifierKey):
-                new_keycode = ModifierKey(
-                    ModifierKey.FAKE_CODE,
-                    set() if self.has_modifiers is None else self.has_modifiers,
-                    no_press=no_press,
-                    no_release=no_release,
-                )
+        modifiers = set()
+        code = modified_key.code
 
-                if self.code != ModifierKey.FAKE_CODE:
-                    new_keycode.has_modifiers.add(self.code)
+        if self.code != ModifierKey.FAKE_CODE:
+            modifiers.add(self.code)
+        if self.has_modifiers:
+            modifiers |= self.has_modifiers
+        if modified_key.has_modifiers:
+            modifiers |= modified_key.has_modifiers
 
-                if modified_code.code != ModifierKey.FAKE_CODE:
-                    new_keycode.has_modifiers.add(modified_code.code)
-            else:
-                new_keycode = Key(
-                    modified_code.code,
-                    {self.code},
-                    no_press=no_press,
-                    no_release=no_release,
-                )
+        if isinstance(modified_key, ModifierKey):
+            if modified_key.code != ModifierKey.FAKE_CODE:
+                modifiers.add(modified_key.code)
+            code = ModifierKey.FAKE_CODE
 
-            if modified_code.has_modifiers:
-                new_keycode.has_modifiers |= modified_code.has_modifiers
-        else:
-            new_keycode = Key(self.code, no_press=no_press, no_release=no_release)
-
-        return new_keycode
+        return type(modified_key)(
+            code=code,
+            has_modifiers=modifiers,
+            no_press=no_press,
+            no_release=no_release,
+            on_press=modified_key._handle_press,
+            on_release=modified_key._handle_release,
+            meta=modified_key.meta,
+        )
 
     def __repr__(self):
         return 'ModifierKey(code={}, has_modifiers={})'.format(
@@ -605,27 +625,6 @@ class ConsumerKey(Key):
     pass
 
 
-def register_key_names(key, names=tuple()):  # NOQA
-    '''
-    Names are globally unique. If a later key is created with
-    the same name as an existing entry in `KC`, it will overwrite
-    the existing entry.
-
-    If a name entry is only a single letter, its entry in the KC
-    object will not be case-sensitive (meaning `names=('A',)` is
-    sufficient to create a key accessible by both `KC.A` and `KC.a`).
-    '''
-
-    for name in names:
-        KC[name] = key
-
-        if len(name) == 1:
-            KC[name.upper()] = key
-            KC[name.lower()] = key
-
-    return key
-
-
 def make_key(code=None, names=tuple(), type=KEY_SIMPLE, **kwargs):  # NOQA
     '''
     Create a new key, aliased by `names` in the KC lookup table.
@@ -634,7 +633,11 @@ def make_key(code=None, names=tuple(), type=KEY_SIMPLE, **kwargs):  # NOQA
     internal key to be handled in a state callback rather than
     sent directly to the OS. These codes will autoincrement.
 
-    See register_key_names() for details on the assignment.
+    Names are globally unique. If a later key is created with
+    the same name as an existing entry in `KC`, it will overwrite
+    the existing entry.
+
+    Names are case sensitive.
 
     All **kwargs are passed to the Key constructor
     '''
@@ -661,7 +664,8 @@ def make_key(code=None, names=tuple(), type=KEY_SIMPLE, **kwargs):  # NOQA
 
     key = constructor(code=code, **kwargs)
 
-    register_key_names(key, names)
+    for name in names:
+        KC[name] = key
 
     gc.collect()
 
