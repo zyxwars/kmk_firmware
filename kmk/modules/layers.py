@@ -54,12 +54,6 @@ class Layers(HoldTap):
             on_press=self.ht_pressed,
             on_release=self.ht_released,
         )
-        make_argumented_key(
-            validator=curry(layer_key_validator, prefer_hold=True),
-            names=('TM',),
-            on_press=curry(self.ht_pressed, key_type=LayerType.TM),
-            on_release=curry(self.ht_released, key_type=LayerType.TM),
-        )
 
     def process_key(self, keyboard, key, is_pressed, int_coord):
         current_key = super().process_key(keyboard, key, is_pressed, int_coord)
