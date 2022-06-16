@@ -13,11 +13,38 @@ from kmk.modules.pimoroni_trackball import Trackball, TrackballMode
 import busio as io
 
 i2c = io.I2C(scl=board.D3, sda=board.D2)
-trackball = Trackball(i2c, mode=TrackballMode.MOUSE_MODE)
+trackball = Trackball(i2c)
 keyboard.modules.append(trackball)
 ```
 
 Module will also work when you cannot use `busio` and do `import bitbangio as io` instead.
+
+### Key inputs, other handler combinations
+
+If you have used this thing on a mobile device, you will know it excels at cursor movement
+
+```python
+
+from kmk.modules.pimoroni_trackball import Trackball, TrackballMode, PointingHandler, KeyHandler, ScrollHandler
+
+trackball = Trackball(i2c, mode=TrackballMode.MOUSE_MODE, handlers=[
+    # act like an encoder, input arrow keys
+    KeyHandler(KC.UP, KC.RIGHT, KC.DOWN, KC.LEFT, KC.ENTER), 
+    # on layer 1 and above use the default pointing behavior
+    PointingHandler(),
+    ScrollHandler()
+])
+
+# now you can use these KeyCodes:
+
+KC.TB_NEXT_HANDLER # rotates through available 
+KC.TB_HANDLER(0) # activate KeyHandler 
+KC.TB_HANDLER(1) # activate MouseHandler
+
+```
+
+
+### Backlight
 
 Setup backlight color using below commands:
 

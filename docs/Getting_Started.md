@@ -1,7 +1,7 @@
 # Getting Started
 > Life was like a box of chocolates. You never know what you're gonna get.
 
-KMK is a keyboard focused layer that sits on top of [CircuitPython](https://circuitpython.org/). As such, it should work with most [boards that support CircuitPython](https://circuitpython.org/downloads). It is best to use the last stable version (>5.0).
+KMK is a keyboard focused layer that sits on top of [CircuitPython](https://circuitpython.org/). As such, it should work with most [boards that support CircuitPython](https://circuitpython.org/downloads). It is best to use the last stable version (>7.0).
 Known working and recommended devices can be found [here](Officially_Supported_Microcontrollers.md)
 
 <br>
@@ -26,8 +26,8 @@ from kmk.scanners import DiodeOrientation
 
 keyboard = KMKKeyboard()
 
-keyboard.col_pins = (board.GP0,)    # try D5 on Feather, keeboar
-keyboard.row_pins = (board.GP1,)    # try D6 on Feather, keeboar
+keyboard.col_pins = (board.GP0,)
+keyboard.row_pins = (board.GP1,)
 keyboard.diode_orientation = DiodeOrientation.COL2ROW
 
 keyboard.keymap = [

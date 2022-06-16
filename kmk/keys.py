@@ -387,7 +387,7 @@ class KeyAttrDict:
                 print(f'{key}: {maybe_key}')
 
             if not maybe_key:
-                raise ValueError('Invalid key')
+                raise ValueError(f'Invalid key: {key}')
 
         return self.__cache[key]
 
@@ -433,7 +433,7 @@ class Key:
         )
 
     def __repr__(self):
-        return 'Key(code={}, has_modifiers={})'.format(self.code, self.has_modifiers)
+        return f'Key(code={self.code}, has_modifiers={self.has_modifiers})'
 
     def on_press(self, state, coord_int=None, coord_raw=None):
         if hasattr(self, '_pre_press_handlers'):
@@ -616,9 +616,7 @@ class ModifierKey(Key):
         )
 
     def __repr__(self):
-        return 'ModifierKey(code={}, has_modifiers={})'.format(
-            self.code, self.has_modifiers
-        )
+        return f'ModifierKey(code={self.code}, has_modifiers={self.has_modifiers})'
 
 
 class ConsumerKey(Key):
