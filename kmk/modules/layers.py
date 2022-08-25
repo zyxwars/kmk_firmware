@@ -1,8 +1,20 @@
 '''One layer isn't enough. Adds keys to get to more of them'''
-from kmk.key_validators import layer_key_validator
 from kmk.keys import KC, make_argumented_key
-from kmk.modules.holdtap import ActivationType, HoldTap
-from kmk.types import HoldTapKeyMeta
+from kmk.modules.holdtap import ActivationType, HoldTap, HoldTapKeyMeta
+from kmk.utils import Debug
+
+debug = Debug(__name__)
+
+
+def layer_key_validator(layer, kc=None):
+    '''
+    Validates the syntax (but not semantics) of a layer key call.  We won't
+    have access to the keymap here, so we can't verify much of anything useful
+    here (like whether the target layer actually exists). The spirit of this
+    existing is mostly that Python will catch extraneous args/kwargs and error
+    out.
+    '''
+    return LayerKeyMeta(layer, kc)
 
 
 def layer_key_validator_lt(layer, kc, prefer_hold=False, **kwargs):
@@ -13,6 +25,12 @@ def layer_key_validator_tt(layer, prefer_hold=True, **kwargs):
     return HoldTapKeyMeta(
         tap=KC.TG(layer), hold=KC.MO(layer), prefer_hold=prefer_hold, **kwargs
     )
+
+
+class LayerKeyMeta:
+    def __init__(self, layer, kc=None):
+        self.layer = layer
+        self.kc = kc
 
 
 class Layers(HoldTap):
@@ -88,12 +106,14 @@ class Layers(HoldTap):
         Switches the default layer
         '''
         keyboard.active_layers[-1] = key.meta.layer
+        self._print_debug(keyboard)
 
     def _mo_pressed(self, key, keyboard, *args, **kwargs):
         '''
         Momentarily activates layer, switches off when you let go
         '''
         keyboard.active_layers.insert(0, key.meta.layer)
+        self._print_debug(keyboard)
 
     @staticmethod
     def _mo_released(key, keyboard, *args, **kwargs):
@@ -110,6 +130,7 @@ class Layers(HoldTap):
             del keyboard.active_layers[del_idx]
         except ValueError:
             pass
+        __class__._print_debug(__class__, keyboard)
 
     def _lm_pressed(self, key, keyboard, *args, **kwargs):
         '''
@@ -145,3 +166,8 @@ class Layers(HoldTap):
         '''
         keyboard.active_layers.clear()
         keyboard.active_layers.insert(0, key.meta.layer)
+
+    def _print_debug(self, keyboard):
+        # debug(f'__getitem__ {key}')
+        if debug.enabled:
+            debug(f'active_layers={keyboard.active_layers}')

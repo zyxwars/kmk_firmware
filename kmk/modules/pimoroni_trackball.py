@@ -64,6 +64,13 @@ class TrackballMode:
     SCROLL_MODE = const(1)
 
 
+class ScrollDirection:
+    '''Behaviour mode of scrolling: natural or reverse scrolling'''
+
+    NATURAL = const(0)
+    REVERSE = const(1)
+
+
 class TrackballHandler:
     def handle(self, keyboard, trackball, x, y, switch, state):
         raise NotImplementedError
@@ -71,15 +78,18 @@ class TrackballHandler:
 
 class PointingHandler(TrackballHandler):
     def handle(self, keyboard, trackball, x, y, switch, state):
-        if x >= 0:
+        if x > 0:
             trackball.pointing_device.report_x[0] = x
-        else:
+        elif x < 0:
             trackball.pointing_device.report_x[0] = 0xFF & x
-        if y >= 0:
+        if y > 0:
             trackball.pointing_device.report_y[0] = y
-        else:
+        elif y < 0:
             trackball.pointing_device.report_y[0] = 0xFF & y
-        trackball.pointing_device.hid_pending = x != 0 or y != 0
+
+        if x != 0 or y != 0:
+            trackball.pointing_device.hid_pending = True
+
         if switch == 1:  # Button pressed
             trackball.pointing_device.button_status[
                 0
@@ -96,10 +106,17 @@ class PointingHandler(TrackballHandler):
 
 
 class ScrollHandler(TrackballHandler):
+    def __init__(self, scroll_direction=ScrollDirection.NATURAL):
+        self.scroll_direction = scroll_direction
+
     def handle(self, keyboard, trackball, x, y, switch, state):
-        pointing_device = trackball.pointing_device
-        pointing_device.report_w[0] = 0xFF & y
-        pointing_device.hid_pending = y != 0
+        if self.scroll_direction == ScrollDirection.REVERSE:
+            y = -y
+
+        if y != 0:
+            pointing_device = trackball.pointing_device
+            pointing_device.report_w[0] = 0xFF & y
+            pointing_device.hid_pending = True
 
         if switch == 1:  # Button pressed
             pointing_device.button_status[0] |= pointing_device.MB_LMB

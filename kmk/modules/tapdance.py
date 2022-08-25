@@ -1,6 +1,5 @@
 from kmk.keys import KC, make_argumented_key
-from kmk.modules.holdtap import ActivationType, HoldTap
-from kmk.types import HoldTapKeyMeta
+from kmk.modules.holdtap import ActivationType, HoldTap, HoldTapKeyMeta
 
 
 class TapDanceKeyMeta:
@@ -44,7 +43,19 @@ class TapDance(HoldTap):
         if isinstance(key.meta, TapDanceKeyMeta):
             if key in self.td_counts:
                 return key
-        return super().process_key(keyboard, key, is_pressed, int_coord)
+
+        for _key, state in self.key_states.copy().items():
+            if state.activated == ActivationType.RELEASED:
+                keyboard.cancel_timeout(state.timeout_key)
+                self.ht_activate_tap(_key, keyboard)
+                keyboard._send_hid()
+                self.ht_deactivate_tap(_key, keyboard)
+                del self.key_states[_key]
+                del self.td_counts[state.tap_dance]
+
+        key = super().process_key(keyboard, key, is_pressed, int_coord)
+
+        return key
 
     def td_pressed(self, key, keyboard, *args, **kwargs):
         # active tap dance
@@ -61,6 +72,8 @@ class TapDance(HoldTap):
                 self.key_states[kc].activated = ActivationType.RELEASED
                 self.on_tap_time_expired(kc, keyboard)
                 count = 0
+            else:
+                del self.key_states[kc]
 
         # new tap dance
         else:
@@ -76,7 +89,10 @@ class TapDance(HoldTap):
         self.key_states[current_key].tap_dance = key
 
     def td_released(self, key, keyboard, *args, **kwargs):
-        kc = key.meta.keys[self.td_counts[key]]
+        try:
+            kc = key.meta.keys[self.td_counts[key]]
+        except KeyError:
+            return
         state = self.key_states[kc]
         if state.activated == ActivationType.HOLD_TIMEOUT:
             # release hold

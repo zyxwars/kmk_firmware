@@ -10,9 +10,9 @@ need to swap it out with an alternative scanner.
 
 ## Keypad Scanners
 The scanners in `kmk.scanners.keypad` wrap the `keypad` module that ships with
-CircuitPython and support the some configuration and tuning options as their
-upstream. You can find out more in the (CircuitPython
-documentation)[https://docs.circuitpython.org/en/latest/shared-bindings/keypad/index.html].
+CircuitPython and support the same configuration and tuning options as their
+upstream. You can find out more in the [CircuitPython
+documentation](https://docs.circuitpython.org/en/latest/shared-bindings/keypad/index.html).
 
 ### keypad MatrixScanner
 This is the default scanner used by KMK.

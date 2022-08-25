@@ -2,9 +2,7 @@
 Want your keyboard to shine? Add some lights!
 
 ## CircuitPython
-If not running KMKPython, this does require the NeoPixel library from Adafruit.
-This can be downloaded 
-[here](https://github.com/adafruit/Adafruit_CircuitPython_NeoPixel/blob/6e35cd2b40575a20e2904b096508325cef4a71d3/neopixel.py).
+This does require the [NeoPixel library from Adafruit](https://github.com/adafruit/Adafruit_CircuitPython_NeoPixel/blob/main/neopixel.py).
 It is part of the [Adafruit CircuitPython Bundle](https://github.com/adafruit/Adafruit_CircuitPython_Bundle).
 Simply put this in the "root" of your CircuitPython device. If unsure, it's the folder with main.py in it, and should be the first folder you see when you open the device.
 
@@ -91,7 +89,7 @@ If you want to create your own animations, or for example, change the lighting i
 |`keyboard.pixels.increase_ani()`                  |Increases animation speed by 1. Maximum 10                                                  |
 |`keyboard.pixels.decrease_ani()`                  |Decreases animation speed by 1. Minimum 10                                                  |
 |`keyboard.pixels.off()`                           |Turns all LED's off                                                                         |
-|`keyboard.pixels.show()`                          |Displays all stored configuration for LED's. Useful with disable_auto_write explained below |
+|`keyboard.pixels.show()`                          |Displays all stored configuration for LED's. Useful with disable_auto_write explained above |
 |`keyboard.pixels.time_ms()`                       |Returns a time in ms since the board has booted. Useful for start/stop timers               |
 
 ## Direct variable access
