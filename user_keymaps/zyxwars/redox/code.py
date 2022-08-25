@@ -9,6 +9,7 @@ from kmk.modules.tapdance import TapDance
 from kmk.modules.split import Split, SplitSide
 from kmk.modules.combos import Combos, Chord, Sequence
 from kmk.modules.capsword import CapsWord
+from kmk.extensions.media_keys import MediaKeys
 from kmk.keys import KC, make_key
 
 
@@ -27,13 +28,15 @@ combos.combos = [
     Sequence((KC.LGUI, KC.F), KC.LGUI(KC.E), timeout=GUI_COMBO_TIMEOUT)
 ]
 
+keyboard.extensions.append(MediaKeys())
+keyboard.modules.append(CapsWord())
+keyboard.modules.append(ModTap())
+keyboard.modules.append(Layers())
+
 tapdance = TapDance()
 tapdance.tap_time = 100
 keyboard.modules.append(tapdance)
 
-keyboard.modules.append(CapsWord())
-keyboard.modules.append(ModTap())
-keyboard.modules.append(Layers())
 
 # TODO: Comment out the unwanted side
 split_side = SplitSide.LEFT
@@ -54,3 +57,4 @@ keyboard.keymap = keymap.keymap
 if __name__ == '__main__':
     print(f'Started {"Left" if split_side == SplitSide.LEFT else "Right"} side')
     keyboard.go()
+
