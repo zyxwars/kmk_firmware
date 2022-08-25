@@ -28,14 +28,14 @@ combos.combos = [
     Sequence((KC.LGUI, KC.F), KC.LGUI(KC.E), timeout=GUI_COMBO_TIMEOUT)
 ]
 
+tapdance = TapDance()
+tapdance.tap_time = 200
+keyboard.modules.append(tapdance)
+
 keyboard.extensions.append(MediaKeys())
 keyboard.modules.append(CapsWord())
 keyboard.modules.append(ModTap())
 keyboard.modules.append(Layers())
-
-tapdance = TapDance()
-tapdance.tap_time = 100
-keyboard.modules.append(tapdance)
 
 
 # TODO: Comment out the unwanted side
@@ -57,4 +57,3 @@ keyboard.keymap = keymap.keymap
 if __name__ == '__main__':
     print(f'Started {"Left" if split_side == SplitSide.LEFT else "Right"} side')
     keyboard.go()
-
