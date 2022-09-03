@@ -4,6 +4,7 @@ except ImportError:
     pass
 import kmk.handlers.stock as handlers
 from kmk.keys import Key, make_key
+from kmk.kmk_keyboard import KMKKeyboard
 from kmk.modules import Module
 
 
@@ -107,7 +108,7 @@ class Combos(Module):
         else:
             return self.on_release(keyboard, key, int_coord)
 
-    def on_press(self, keyboard, key: Optional[Key], int_coord):
+    def on_press(self, keyboard: KMKKeyboard, key: Key, int_coord: Optional[int]):
         # refill potential matches from timed-out matches
         if not self._matching:
             self._matching = list(self._reset)
@@ -156,11 +157,12 @@ class Combos(Module):
             # There's no matching combo: send and reset key buffer
             self.send_key_buffer(keyboard)
             self._key_buffer = []
-            key = keyboard._find_key_in_map(int_coord)
+            if int_coord is not None:
+                key = keyboard._find_key_in_map(int_coord)
 
         return key
 
-    def on_release(self, keyboard, key: Optional[Key], int_coord):
+    def on_release(self, keyboard: KMKKeyboard, key: Key, int_coord: Optional[int]):
         for combo in self._active:
             if key in combo.match:
                 # Deactivate combo if it matches current key.
@@ -256,16 +258,16 @@ class Combos(Module):
 
     def send_key_buffer(self, keyboard):
         for (int_coord, key, is_pressed) in self._key_buffer:
-            try:
-                new_key = keyboard._coordkeys_pressed[int_coord]
-            except KeyError:
-                new_key = None
+            new_key = None
+            if not is_pressed:
+                try:
+                    new_key = keyboard._coordkeys_pressed[int_coord]
+                except KeyError:
+                    new_key = None
             if new_key is None:
                 new_key = keyboard._find_key_in_map(int_coord)
 
-            keyboard._coordkeys_pressed[int_coord] = new_key
-
-            keyboard.process_key(new_key, is_pressed)
+            keyboard.resume_process_key(self, new_key, is_pressed, int_coord)
             keyboard._send_hid()
 
     def activate(self, keyboard, combo):
