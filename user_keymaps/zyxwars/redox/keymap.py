@@ -42,11 +42,18 @@ GITCA = simple_key_sequence(
 )
 
 keymap = [
-    [   # COLEMAK-DH
+    # [   # COLEMAK-DH
+        # KC.GRV,  KC.N1,   KC.N2,   KC.N3,   KC.N4,   KC.N5,   F5RUN,          GAMING,  KC.N6,   KC.N7,   KC.N8,   KC.N9,   KC.N0,   KC.BSLS,
+        # KC.TAB,  KC.Q,    KC.W,    KC.F,    KC.P,    KC.B,    KC.F12,         KC.CW,   KC.J,    KC.L,    KC.U,    KC.Y,    KC.SCLN, KC.EQUAL,
+        # KC.BSPC, KC.A,    KC.R,    KC.S,    KC.T,    KC.G,    GITCA,          _______, KC.M,    KC.N,    KC.E,    KC.I,    KC.O,    KC.QUOT,
+        # SFTMOD1, KC.Z,    KC.X,    KC.C,    KC.D,    KC.V,    KC.RESET,       _______, KC.K,    KC.H,    KC.COMMA, KC.DOT, KC.SLASH,SFTMOD2,
+        # KC.LCTL, KC.LGUI, KC.LALT, KC.DEL,  FN,      KC.SPC,  KC.LSFT,        _______, ENTFN,   FN,      KC.LEFT, KC.DOWN, KC.UP,   KC.RIGHT
+    # ],  
+    [   # GAMING/QWERTY
         KC.GRV,  KC.N1,   KC.N2,   KC.N3,   KC.N4,   KC.N5,   F5RUN,          GAMING,  KC.N6,   KC.N7,   KC.N8,   KC.N9,   KC.N0,   KC.BSLS,
-        KC.TAB,  KC.Q,    KC.W,    KC.F,    KC.P,    KC.B,    KC.F12,         KC.CW,   KC.J,    KC.L,    KC.U,    KC.Y,    KC.SCLN, KC.EQUAL,
-        KC.BSPC, KC.A,    KC.R,    KC.S,    KC.T,    KC.G,    GITCA,          _______, KC.M,    KC.N,    KC.E,    KC.I,    KC.O,    KC.QUOT,
-        SFTMOD1, KC.Z,    KC.X,    KC.C,    KC.D,    KC.V,    KC.RESET,       _______, KC.K,    KC.H,    KC.COMMA, KC.DOT, KC.SLASH,SFTMOD2,
+        KC.TAB,  KC.Q,    KC.W,    KC.E,    KC.R,    KC.T,    KC.F12,         _______, KC.Y,    KC.U,    KC.I,    KC.O,    KC.P,    KC.EQUAL,
+        KC.BSPC, KC.A,    KC.S,    KC.D,    KC.F,    KC.G,    GITCA,          _______, KC.H,    KC.J,    KC.K,    KC.L,    KC.SCLN, KC.QUOT,
+        SFTMOD1, KC.Z,    KC.X,    KC.C,    KC.V,    KC.B,    KC.RESET,       _______, KC.N,    KC.M,    KC.COMMA,KC.DOT,  KC.SLASH,SFTMOD2,
         KC.LCTL, KC.LGUI, KC.LALT, KC.DEL,  FN,      KC.SPC,  KC.LSFT,        _______, ENTFN,   FN,      KC.LEFT, KC.DOWN, KC.UP,   KC.RIGHT
     ],
     [   # PROGRAMMER COLEMAK FN
