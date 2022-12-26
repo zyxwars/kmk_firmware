@@ -1,9 +1,12 @@
 try:
-    from typing import Optional
+    from typing import Callable, Optional, Tuple
 except ImportError:
     pass
 
 from supervisor import ticks_ms
+
+from collections import namedtuple
+from keypad import Event as KeyEvent
 
 from kmk.consts import UnicodeMode
 from kmk.hid import BLEHID, USBHID, AbstractHID, HIDModes
@@ -14,6 +17,10 @@ from kmk.scanners.keypad import MatrixScanner
 from kmk.utils import Debug
 
 debug = Debug(__name__)
+
+KeyBufferFrame = namedtuple(
+    'KeyBufferFrame', ('key', 'is_pressed', 'int_coord', 'index')
+)
 
 
 class Sandbox:
@@ -57,6 +64,8 @@ class KMKKeyboard:
     i2c_deinit_count = 0
     _go_args = None
     _processing_timeouts = False
+    _resume_buffer = []
+    _resume_buffer_x = []
 
     # this should almost always be PREpended to, replaces
     # former use of reversed_active_layers which had pointless
@@ -69,7 +78,7 @@ class KMKKeyboard:
     # 6.0rc1) this runs out of RAM every cycle and takes down the board. no
     # real known fix yet other than turning off debug, but M4s have always been
     # tight on RAM so....
-    def __repr__(self):
+    def __repr__(self) -> str:
         return ''.join(
             [
                 'KMKKeyboard(\n',
@@ -87,12 +96,12 @@ class KMKKeyboard:
             ]
         )
 
-    def _print_debug_cycle(self, init=False):
+    def _print_debug_cycle(self, init: bool = False) -> None:
         if debug.enabled:
             debug(f'coordkeys_pressed={self._coordkeys_pressed}')
             debug(f'keys_pressed={self.keys_pressed}')
 
-    def _send_hid(self):
+    def _send_hid(self) -> None:
         if self._hid_send_enabled:
             hid_report = self._hid_helper.create_report(self.keys_pressed)
             try:
@@ -102,12 +111,12 @@ class KMKKeyboard:
                     debug(f'HidNotFound(HIDReportType={e})')
         self.hid_pending = False
 
-    def _handle_matrix_report(self, update=None):
-        if update is not None:
-            self._on_matrix_changed(update)
+    def _handle_matrix_report(self, kevent: KeyEvent) -> None:
+        if kevent is not None:
+            self._on_matrix_changed(kevent)
             self.state_changed = True
 
-    def _find_key_in_map(self, int_coord):
+    def _find_key_in_map(self, int_coord: int) -> Key:
         try:
             idx = self.coord_mapping.index(int_coord)
         except ValueError:
@@ -129,7 +138,7 @@ class KMKKeyboard:
 
             return layer_key
 
-    def _on_matrix_changed(self, kevent):
+    def _on_matrix_changed(self, kevent: KeyEvent) -> None:
         int_coord = kevent.key_number
         is_pressed = kevent.pressed
         if debug.enabled:
@@ -156,15 +165,62 @@ class KMKKeyboard:
 
         self.pre_process_key(key, is_pressed, int_coord)
 
+    def _process_resume_buffer(self):
+        '''
+        Resume the processing of buffered, delayed, deferred, etc. key events
+        emitted by modules.
+
+        We use a copy of the `_resume_buffer` as a working buffer. The working
+        buffer holds all key events in the correct order for processing. If
+        during processing new events are pushed to the `_resume_buffer`, they
+        are prepended to the working buffer (which may not be emptied), in
+        order to preserve key event order.
+        We also double-buffer `_resume_buffer` with `_resume_buffer_x`, only
+        copying the reference to hopefully safe some time on allocations.
+        '''
+
+        buffer, self._resume_buffer = self._resume_buffer, self._resume_buffer_x
+
+        while buffer:
+            ksf = buffer.pop(0)
+            key = ksf.key
+
+            # Handle any unaccounted-for layer shifts by looking up the key resolution again.
+            if ksf.int_coord in self._coordkeys_pressed.keys():
+                key = self._find_key_in_map(ksf.int_coord)
+
+            # Resume the processing of the key event and update the HID report
+            # when applicable.
+            self.pre_process_key(key, ksf.is_pressed, ksf.int_coord, ksf.index)
+
+            if self.hid_pending:
+                self._send_hid()
+                self.hid_pending = False
+
+            # Any newly buffered key events must be prepended to the working
+            # buffer.
+            if self._resume_buffer:
+                self._resume_buffer.extend(buffer)
+                buffer.clear()
+                buffer, self._resume_buffer = self._resume_buffer, buffer
+
+        self._resume_buffer_x = buffer
+
     @property
-    def debug_enabled(self):
+    def debug_enabled(self) -> bool:
         return debug.enabled
 
     @debug_enabled.setter
-    def debug_enabled(self, enabled):
+    def debug_enabled(self, enabled: bool):
         debug.enabled = enabled
 
-    def pre_process_key(self, key, is_pressed, int_coord=None, index=0):
+    def pre_process_key(
+        self,
+        key: Key,
+        is_pressed: bool,
+        int_coord: Optional[int] = None,
+        index: int = 0,
+    ) -> None:
         for module in self.modules[index:]:
             try:
                 key = module.process_key(self, key, is_pressed, int_coord)
@@ -187,15 +243,13 @@ class KMKKeyboard:
         if key:
             self.process_key(key, is_pressed, int_coord)
 
-        return self
-
-    def process_key(self, key, is_pressed, coord_int=None):
+    def process_key(
+        self, key: Key, is_pressed: bool, coord_int: Optional[int] = None
+    ) -> None:
         if is_pressed:
             key.on_press(self, coord_int)
         else:
             key.on_release(self, coord_int)
-
-        return self
 
     def resume_process_key(
         self,
@@ -205,24 +259,27 @@ class KMKKeyboard:
         int_coord: Optional[int] = None,
     ) -> None:
         index = self.modules.index(module) + 1
-        self.pre_process_key(key, is_pressed, int_coord, index)
+        ksf = KeyBufferFrame(
+            key=key, is_pressed=is_pressed, int_coord=int_coord, index=index
+        )
+        self._resume_buffer.append(ksf)
 
-    def remove_key(self, keycode):
+    def remove_key(self, keycode: Key) -> None:
         self.keys_pressed.discard(keycode)
-        return self.process_key(keycode, False)
+        self.process_key(keycode, False)
 
-    def add_key(self, keycode):
+    def add_key(self, keycode: Key) -> None:
         self.keys_pressed.add(keycode)
-        return self.process_key(keycode, True)
+        self.process_key(keycode, True)
 
-    def tap_key(self, keycode):
+    def tap_key(self, keycode: Key) -> None:
         self.add_key(keycode)
         # On the next cycle, we'll remove the key.
         self.set_timeout(False, lambda: self.remove_key(keycode))
 
-        return self
-
-    def set_timeout(self, after_ticks, callback):
+    def set_timeout(
+        self, after_ticks: int, callback: Callable[[None], None]
+    ) -> Tuple[int, int]:
         # We allow passing False as an implicit "run this on the next process timeouts cycle"
         if after_ticks is False:
             after_ticks = 0
@@ -240,16 +297,16 @@ class KMKKeyboard:
 
         return (timeout_key, idx)
 
-    def cancel_timeout(self, timeout_key):
+    def cancel_timeout(self, timeout_key: int) -> None:
         try:
             self._timeouts[timeout_key[0]][timeout_key[1]] = None
         except (KeyError, IndexError):
             if debug.enabled:
                 debug(f'no such timeout: {timeout_key}')
 
-    def _process_timeouts(self):
+    def _process_timeouts(self) -> None:
         if not self._timeouts:
-            return self
+            return
 
         # Copy timeout keys to a temporary list to allow sorting.
         # Prevent net timeouts set during handling from running on the current
@@ -273,9 +330,7 @@ class KMKKeyboard:
 
         self._processing_timeouts = False
 
-        return self
-
-    def _init_sanity_check(self):
+    def _init_sanity_check(self) -> None:
         '''
         Ensure the provided configuration is *probably* bootable
         '''
@@ -290,9 +345,7 @@ class KMKKeyboard:
                 self.diode_orientation is not None
             ), 'diode orientation must be defined'
 
-        return self
-
-    def _init_coord_mapping(self):
+    def _init_coord_mapping(self) -> None:
         '''
         Attempt to sanely guess a coord_mapping if one is not provided. No-op
         if `kmk.extensions.split.Split` is used, it provides equivalent
@@ -310,7 +363,7 @@ class KMKKeyboard:
                 cm.extend(m.coord_mapping)
             self.coord_mapping = tuple(cm)
 
-    def _init_hid(self):
+    def _init_hid(self) -> None:
         if self.hid_type == HIDModes.NOOP:
             self._hid_helper = AbstractHID
         elif self.hid_type == HIDModes.USB:
@@ -322,7 +375,7 @@ class KMKKeyboard:
         self._hid_helper = self._hid_helper(**self._go_args)
         self._hid_send_enabled = True
 
-    def _init_matrix(self):
+    def _init_matrix(self) -> None:
         if self.matrix is None:
             if debug.enabled:
                 debug('Initialising default matrix scanner.')
@@ -341,9 +394,7 @@ class KMKKeyboard:
         except TypeError:
             self.matrix = (self.matrix,)
 
-        return self
-
-    def before_matrix_scan(self):
+    def before_matrix_scan(self) -> None:
         for module in self.modules:
             try:
                 module.before_matrix_scan(self)
@@ -358,7 +409,7 @@ class KMKKeyboard:
                 if debug.enabled:
                     debug(f'Error in {ext}.before_matrix_scan: {err}')
 
-    def after_matrix_scan(self):
+    def after_matrix_scan(self) -> None:
         for module in self.modules:
             try:
                 module.after_matrix_scan(self)
@@ -373,7 +424,7 @@ class KMKKeyboard:
                 if debug.enabled:
                     debug(f'Error in {ext}.after_matrix_scan: {err}')
 
-    def before_hid_send(self):
+    def before_hid_send(self) -> None:
         for module in self.modules:
             try:
                 module.before_hid_send(self)
@@ -390,7 +441,7 @@ class KMKKeyboard:
                         f'Error in {ext}.before_hid_send: {err}',
                     )
 
-    def after_hid_send(self):
+    def after_hid_send(self) -> None:
         for module in self.modules:
             try:
                 module.after_hid_send(self)
@@ -405,7 +456,7 @@ class KMKKeyboard:
                 if debug.enabled:
                     debug(f'Error in {ext}.after_hid_send: {err}')
 
-    def powersave_enable(self):
+    def powersave_enable(self) -> None:
         for module in self.modules:
             try:
                 module.on_powersave_enable(self)
@@ -420,7 +471,7 @@ class KMKKeyboard:
                 if debug.enabled:
                     debug(f'Error in {ext}.powersave_enable: {err}')
 
-    def powersave_disable(self):
+    def powersave_disable(self) -> None:
         for module in self.modules:
             try:
                 module.on_powersave_disable(self)
@@ -434,12 +485,17 @@ class KMKKeyboard:
                 if debug.enabled:
                     debug(f'Error in {ext}.powersave_disable: {err}')
 
-    def go(self, hid_type=HIDModes.USB, secondary_hid_type=None, **kwargs):
+    def go(self, hid_type=HIDModes.USB, secondary_hid_type=None, **kwargs) -> None:
         self._init(hid_type=hid_type, secondary_hid_type=secondary_hid_type, **kwargs)
         while True:
             self._main_loop()
 
-    def _init(self, hid_type=HIDModes.USB, secondary_hid_type=None, **kwargs):
+    def _init(
+        self,
+        hid_type: HIDModes = HIDModes.USB,
+        secondary_hid_type: Optional[HIDModes] = None,
+        **kwargs,
+    ) -> None:
         self._go_args = kwargs
         self.hid_type = hid_type
         self.secondary_hid_type = secondary_hid_type
@@ -465,17 +521,20 @@ class KMKKeyboard:
         if debug.enabled:
             debug(f'init: {self}')
 
-    def _main_loop(self):
+    def _main_loop(self) -> None:
         self.state_changed = False
         self.sandbox.active_layers = self.active_layers.copy()
 
         self.before_matrix_scan()
+
+        self._process_resume_buffer()
 
         for matrix in self.matrix:
             update = matrix.scan_for_changes()
             if update:
                 self.matrix_update = update
                 break
+        self.sandbox.matrix_update = self.matrix_update
         self.sandbox.secondary_matrix_update = self.secondary_matrix_update
 
         self.after_matrix_scan()

@@ -17,7 +17,7 @@ from kmk.handlers.sequences import send_string
 
 WOW = send_string("Wow, KMK is awesome!")
 
-keyboard.keymap = [...WOW,...]
+keyboard.keymap = [<other keycodes>, WOW, <other keycodes>]
 ```
 
 ## Key sequences
@@ -29,26 +29,26 @@ use it to add things like copying/pasting, tabbing between fields, etc.
 from kmk.handlers.sequences import simple_key_sequence
 
 PASTE_WITH_COMMENTARY = simple_key_sequence(
-	(
-		KC.L,
-		KC.O,
-		KC.O,
-		KC.K,
-		KC.SPC,
-		KC.A,
-		KC.T,
-		KC.SPC,
-		KC.T,
-		KC.H,
-		KC.I,
-		KC.S,
-		KC.COLN,
-		KC.SPC,
-		KC.LCTL(KC.V),
-	)
+        (
+                KC.L,
+                KC.O,
+                KC.O,
+                KC.K,
+                KC.SPC,
+                KC.A,
+                KC.T,
+                KC.SPC,
+                KC.T,
+                KC.H,
+                KC.I,
+                KC.S,
+                KC.COLN,
+                KC.SPC,
+                KC.LCTL(KC.V),
+        )
 )
 
-keyboard.keymap = [...PASTE_WITH_COMMENTARY,...]
+keyboard.keymap = [<other keycodes>, PASTE_WITH_COMMENTARY, <other keycodes>]
 ```
 
 The above example will type out "look at this: " and then paste the contents of your
@@ -64,22 +64,34 @@ length of time, in milliseconds.
 from kmk.handlers.sequences import simple_key_sequence
 
 COUNTDOWN_TO_PASTE = simple_key_sequence(
-	(
-		KC.N3,
-		KC.ENTER,
-		KC.MACRO_SLEEP_MS(1000),
-		KC.N2,
-		KC.ENTER,
-		KC.MACRO_SLEEP_MS(1000),
-		KC.N1,
-		KC.ENTER,
-		KC.MACRO_SLEEP(1000),
-		KC.LCTL(KC.V),
-	)
+        (
+                KC.N3,
+                KC.ENTER,
+                KC.MACRO_SLEEP_MS(1000),
+                KC.N2,
+                KC.ENTER,
+                KC.MACRO_SLEEP_MS(1000),
+                KC.N1,
+                KC.ENTER,
+                KC.MACRO_SLEEP(1000),
+                KC.LCTL(KC.V),
+        )
 )
 
-keyboard.keymap = [...COUNTDOWN_TO_PASTE,...]
+keyboard.keymap = [<other keycodes>, COUNTDOWN_TO_PASTE, <other keycodes>]
 ```
+
+from kmk.handlers.sequences import simple_key_sequence
+
+NEXT = simple_key_sequence(
+    (
+        KC.LALT(no_release=True), 
+        KC.MACRO_SLEEP_MS(30),
+        KC.TAB,
+        KC.MACRO_SLEEP_MS(30),
+        KC.LALT(no_press=True),
+    )
+)
 
 This example will type out the following, waiting one second (1000 ms) between numbers:
 
@@ -89,6 +101,24 @@ This example will type out the following, waiting one second (1000 ms) between n
 
 and then paste the contents of your clipboard.
 
+### Alt Tab with delay
+
+If alt tab isn't working because it requires a delay, adding a delay and triggering
+down and up on ALT manually may fix the issue.
+
+``` python
+from kmk.handlers.sequences import simple_key_sequence
+
+NEXT = simple_key_sequence(
+    (
+        KC.LALT(no_release=True), 
+        KC.MACRO_SLEEP_MS(30),
+        KC.TAB,
+        KC.MACRO_SLEEP_MS(30),
+        KC.LALT(no_press=True),
+    )
+)
+```
 
 ## Unicode
 Before trying to send Unicode sequences, make sure you set your `UnicodeMode`.
@@ -118,7 +148,7 @@ from kmk.handlers.sequences import unicode_string_sequence
 
 FLIP = unicode_string_sequence('(ノಠ痊ಠ)ノ彡┻━┻')
 
-keyboard.keymap = [...FLIP,...]
+keyboard.keymap = [<other keycodes>, FLIP, <other keycodes>]
 ```
 
 If you'd rather keep a lookup table of your sequences (perhaps to bind emojis to
@@ -128,11 +158,11 @@ keys), that's supported too, through an obnoxiously long-winded method:
 from kmk.handlers.sequences import compile_unicode_string_sequences as cuss
 
 emoticons = cuss({
-	'BEER': r'🍺',
-	'HAND_WAVE': r'👋',
+        'BEER': r'🍺',
+        'HAND_WAVE': r'👋',
 })
 
-keymap = [...emoticons.BEER, emoticons.HAND_WAVE...]
+keymap = [<other keycodes>, emoticons.BEER, emoticons.HAND_WAVE, <other keycodes>]
 ```
 
 > The observant will notice dot-notation is supported here despite feeding in a
@@ -147,9 +177,9 @@ supported too, through `unicode_codepoint_sequence`.
 from kmk.handlers.sequences import unicode_codepoint_sequence
 
 TABLE_FLIP = unicode_codepoint_sequence([
-	"28", "30ce", "ca0", "75ca","ca0", "29",
-	"30ce", "5f61", "253b", "2501", "253b",
+        "28", "30ce", "ca0", "75ca","ca0", "29",
+        "30ce", "5f61", "253b", "2501", "253b",
 ])
 
-keyboard.keymap = [...TABLE_FLIP,...]
+keyboard.keymap = [<other keycodes>, TABLE_FLIP, <other keycodes>]
 ```
