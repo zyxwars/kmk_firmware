@@ -40,7 +40,7 @@ keyboard.modules.append(Layers())
 
 # TODO: Comment out the unwanted side
 split_side = SplitSide.LEFT
-split_side = SplitSide.RIGHT
+# split_side = SplitSide.RIGHT
 
 split = Split(split_side=split_side, data_pin=board.GP1,
               data_pin2=board.GP0, split_flip=False, uart_flip=False)
