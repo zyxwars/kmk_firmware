@@ -14,8 +14,8 @@ ENTFN = KC.LT(1, KC.ENT, prefer_hold=True, tap_interrupted=False)
 GAMING = KC.TG(2)
 
 # Mod tap
-SFTMOD1 = KC.MT(KC.ESC, KC.LSFT, prefer_hold=True, tap_interrupted=False)
-SFTMOD2 = KC.MT(KC.BSLS, KC.RSFT, prefer_hold=True, tap_interrupted=False)
+SFTMOD1 = KC.MT(KC.ESC, KC.LSFT, prefer_hold=True, tap_interrupted=False, tap_time=150)
+SFTMOD2 = KC.MT(KC.BSLS, KC.RSFT, prefer_hold=True, tap_interrupted=False, tap_time=150)
 
 # Tap dance
 BSPCMOD = KC.TD(KC.BSPC, KC.LCTL(KC.BSPC))
